@@ -19,5 +19,23 @@ services:
     App\:
         resource: '../src/'
 
+    App\Service\:
+        resource: '../src/Service/'
+        autowire: true
+        autoconfigure: true
+        public: true
+
+    App\Service\BrightDataService:
+        arguments:
+            $apiKey: '%env(BRIGHT_DATA_API_KEY)%'
+            
+    App\Service\RabbitMqMessengerService:
+        arguments:
+            $host: '%env(RABBITMQ_HOST)%'
+            $port: '%env(RABBITMQ_PORT)%'
+            $user: '%env(RABBITMQ_USER)%'
+            $password: '%env(RABBITMQ_PASSWORD)%'
+            $vhost: '%env(RABBITMQ_VHOST)%'
+
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones

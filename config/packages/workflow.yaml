@@ -1,0 +1,26 @@
+framework:
+    workflows: 
+        product_workflow:
+            type: 'state_machine'
+            audit_trail:
+                enabled: true
+            marking_store:
+                type: 'method'
+                property: 'status'
+            supports:
+                - App\Entity\Product
+            initial_marking: 'pending'
+            places:
+                - pending
+                - processing
+                - completed
+            transitions:
+                to_processing:
+                    from: pending
+                    to: processing
+                to_completed:
+                    from: processing
+                    to: completed
+                to_pending:
+                    from: completed
+                    to: pending
