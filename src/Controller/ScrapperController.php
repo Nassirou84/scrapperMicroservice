@@ -3,29 +3,76 @@
 namespace App\Controller;
 
 use App\Service\BrightDataService;
+use App\Service\DataSyncService;
+use InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 use Symfony\Contracts\Cache\CacheInterface;
 use Symfony\Contracts\Cache\ItemInterface;
-use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\Routing\Attribute\Route;
 
 final class ScrapperController extends AbstractController
 {
-    #[Route('/api/home', name: 'app_home')]
+    #[Route('/api/scrapper', name: 'app_home')]
     public function index(
-        BrightDataService $brightDataAmazonScraper,
-        CacheInterface $cacheInterface,
+        Request $request,
+        BrightDataService $brightData,
+        CacheInterface $cache,
+        DataSyncService $dataSync,
+        NormalizerInterface $normalizer,
     ): JsonResponse {
-        // This scrapes a fixed demo URL; caching avoids paying for a fresh
-        // Bright Data scrape on every single homepage hit.
-        $productData = $cacheInterface->get('home_demo_product', function (ItemInterface $item) use ($brightDataAmazonScraper) {
-            $item->expiresAfter(3600);
 
-            return $brightDataAmazonScraper->scrapeProduct('https://www.amazon.com/Google-Pixel-Smartphone-Assistant-Fast-Charging/dp/B0FFTRK635/ref=sr_1_1_sspa?crid=2XUZK83JRAF8A&dib=eyJ2IjoiMSJ9.J2DHLcRIkKP6zLt74HGwdbzEvhuQRVyH13B9JaSC3_61QNJu3eLChmkuCLBe8nmyn7Xoysb9jo_MUCMQe9c6XZ2QxjLXvdtNzSyACIEVwMSmo2ZaqPZMP9-CqYncEyfP4-peyrcArUdT2CLEYrt18iRyu4hzTCP6DbtUsBJyZmol-Cvt4r5L67F92bMnPBuu-wI649QUa8uzB0b40vANjpIhmFTjPM210SYk4KR-9zY.LI1vqNBgOYUvE_076UHOof7tx_48JtHywwGRz48fV2s&dib_tag=se&keywords=google%2Bpixel&qid=1783688970&sprefix=google%2Bpixel%2Caps%2C181&sr=8-1-spons&ufe=app_do%3Aamzn1.fos.0f891610-7b8b-4b91-8ba6-963fbc5b64cf&sp_csd=d2lkZ2V0TmFtZT1zcF9hdGY&th=1');
-        });
+        $url = (string) $request->query->get('url');
 
-        return $this->json([
-            'product_data' => $productData,
-        ]);
+        if (!filter_var($url, FILTER_VALIDATE_URL)) {
+            return $this->json(['error' => 'Invalid url parameter'], 400);
+        }
+
+        try {
+            $productData = $cache->get('scrape_' . md5($url), function (ItemInterface $item) use ($brightData, $url) {
+                $data = $brightData->scrapeProduct($url);
+                if (null === $data) {
+                    return null;
+                }
+                $item->expiresAfter(null === $data ? 0 : 7200);
+                return $data;
+            });
+        } catch (InvalidArgumentException $e) {
+            return $this->json(['error' => $e->getMessage()], 422);
+        }
+
+        if (null === $productData) {
+            return $this->json(['error' => 'Scrape failed, check the PHP error log'], 502);
+        }
+
+        $synchronizedProduct = $dataSync->synchronizeData($productData, parse_url($url, PHP_URL_HOST));
+
+        if (false === $synchronizedProduct) {
+            return $this->json(['error' => 'Synchronization failed'], 500);
+        }
+
+        $normalizedProduct = $normalizer->normalize($synchronizedProduct);
+
+        return $this->json($normalizedProduct, 200);
+    }
+
+    #[Route('/api/batch', name: 'app_batch')]
+    public function batch(Request $request, BrightDataService $brightData): JsonResponse
+    {
+        $urls = $request->query->all('urls');
+
+        try {
+            $products = $brightData->scrapeMultipleProducts($urls);
+        } catch (InvalidArgumentException $e) {
+            return $this->json(['error' => $e->getMessage()], 422);
+        }
+
+        if (null === $products) {
+            return $this->json(['error' => 'Scrape failed, check the PHP error log'], 502);
+        }
+
+        return $this->json(['products' => $products]);
     }
 }
