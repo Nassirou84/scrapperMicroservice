@@ -31,7 +31,7 @@ class ConsumeRabbitMqCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
 
-        $queue = 'test_queue';
+        $queue = 'add_new_product_queue';
         $channel = $this->rabbitMqMessengerService->getConsumerChannel();
 
         $channel->queue_declare($queue, false, true, false, false);

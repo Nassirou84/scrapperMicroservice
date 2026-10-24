@@ -67,6 +67,30 @@ class Product
     #[ORM\Column(length: 20)]
     private ?string $status = null;
 
+    #[ORM\Column(nullable: true)]
+    private ?array $lastScrappedResult = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?float $overallRating = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?int $overallRatingsCounts = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $returnPolicy = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $productCondition = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?bool $acceptReturn = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?bool $primeDelivery = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?bool $sellerChoice = null;
+
     public function __construct(
     ) {
         $this->createdAt = new DateTime();
@@ -305,6 +329,102 @@ class Product
     public function setStatus(string $status): static
     {
         $this->status = $status;
+
+        return $this;
+    }
+
+    public function getLastScrappedResult(): ?array
+    {
+        return $this->lastScrappedResult;
+    }
+
+    public function setLastScrappedResult(?array $lastScrappedResult): static
+    {
+        $this->lastScrappedResult = $lastScrappedResult;
+
+        return $this;
+    }
+
+    public function getOverallRating(): ?float
+    {
+        return $this->overallRating;
+    }
+
+    public function setOverallRating(?float $overallRating): static
+    {
+        $this->overallRating = $overallRating;
+
+        return $this;
+    }
+
+    public function getOverallRatingsCounts(): ?int
+    {
+        return $this->overallRatingsCounts;
+    }
+
+    public function setOverallRatingsCounts(?int $overallRatingsCounts): static
+    {
+        $this->overallRatingsCounts = $overallRatingsCounts;
+
+        return $this;
+    }
+
+    public function getReturnPolicy(): ?string
+    {
+        return $this->returnPolicy;
+    }
+
+    public function setReturnPolicy(?string $returnPolicy): static
+    {
+        $this->returnPolicy = $returnPolicy;
+
+        return $this;
+    }
+
+    public function getProductCondition(): ?string
+    {
+        return $this->productCondition;
+    }
+
+    public function setProductCondition(?string $productCondition): static
+    {
+        $this->productCondition = $productCondition;
+
+        return $this;
+    }
+
+    public function isAcceptReturn(): ?bool
+    {
+        return $this->acceptReturn;
+    }
+
+    public function setAcceptReturn(?bool $acceptReturn): static
+    {
+        $this->acceptReturn = $acceptReturn;
+
+        return $this;
+    }
+
+    public function isPrimeDelivery(): ?bool
+    {
+        return $this->primeDelivery;
+    }
+
+    public function setPrimeDelivery(?bool $primeDelivery): static
+    {
+        $this->primeDelivery = $primeDelivery;
+
+        return $this;
+    }
+
+    public function isSellerChoice(): ?bool
+    {
+        return $this->sellerChoice;
+    }
+
+    public function setSellerChoice(?bool $sellerChoice): static
+    {
+        $this->sellerChoice = $sellerChoice;
 
         return $this;
     }

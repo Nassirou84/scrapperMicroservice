@@ -28,6 +28,14 @@ services:
     App\Service\BrightDataService:
         arguments:
             $apiKey: '%env(BRIGHT_DATA_API_KEY)%'
+            $datasets:
+                amazon.: '%env(BRIGHT_DATA_AMAZON_DATASET)%'
+                ebay.: '%env(BRIGHT_DATA_EBAY_DATASET)%'
+                walmart.: '%env(BRIGHT_DATA_WALMART_DATASET)%'
+                bestbuy.: '%env(BRIGHT_DATA_BESTBUY_DATASET)%'
+                nike.: '%env(BRIGHT_DATA_NIKE_DATASET)%'
+                adidas.: '%env(BRIGHT_DATA_ADIDAS_DATASET)%'
+                macys.: '%env(BRIGHT_DATA_MACYS_DATASET)%'
             
     App\Service\RabbitMqMessengerService:
         arguments:
