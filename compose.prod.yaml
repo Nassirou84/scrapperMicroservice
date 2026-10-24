@@ -1,0 +1,19 @@
+# Production-like run:
+#   docker compose -f compose.yaml -f compose.prod.yaml up -d --build
+# Secrets (APP_SECRET, RABBITMQ_*, BRIGHT_DATA_*, POSTGRES_PASSWORD) must come from the
+# environment or an env file, e.g. `--env-file .env.prod.local`.
+services:
+  app:
+    build:
+      target: prod
+    environment:
+      APP_ENV: prod
+    volumes: !reset []
+    restart: unless-stopped
+
+  worker:
+    build:
+      target: prod
+    environment:
+      APP_ENV: prod
+    volumes: !reset []

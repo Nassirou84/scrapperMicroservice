@@ -1,6 +1,59 @@
-
 services:
-###> doctrine/doctrine-bundle ###
+  app:
+    build:
+      context: .
+      target: dev
+    ports:
+      - "${APP_PORT:-8001}:80"
+    env_file:
+      - path: .env.local
+        required: false
+    environment: &app-env
+      APP_ENV: ${APP_ENV:-dev}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-app}:${POSTGRES_PASSWORD:-!ChangeMe!}@database:5432/${POSTGRES_DB:-app}?serverVersion=${POSTGRES_VERSION:-16}&charset=utf8
+      # 127.0.0.1 in .env.local points at the container itself; reach RabbitMQ by its alias on the shared network
+      RABBITMQ_HOST: ${RABBITMQ_HOST_DOCKER:-rabbitmq}
+    volumes:
+      - ./:/app
+      # keep container-built dependencies / cache instead of the host's
+      - vendor:/app/vendor
+      - app_var:/app/var
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      default: # shared with the main API + RabbitMQ; the main API can call http://scrapper/api/scrapper
+
+      buyfromus_default:
+        aliases:
+          - scrapper
+
+  # Long-running RabbitMQ consumer (RabbitMQ itself is external, configured via RABBITMQ_* in .env.local)
+  worker:
+    build:
+      context: .
+      target: dev
+    command: php bin/console app:new-products:consume -vv
+    restart: unless-stopped
+    # the base image checks Caddy's admin endpoint, which a CLI worker doesn't serve
+    healthcheck:
+      disable: true
+    env_file:
+      - path: .env.local
+        required: false
+    environment: *app-env
+    volumes:
+      - ./:/app
+      - vendor:/app/vendor
+      - app_var:/app/var
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - default
+      - buyfromus_default
+
+  ###> doctrine/doctrine-bundle ###
   database:
     image: postgres:${POSTGRES_VERSION:-16}-alpine
     environment:
@@ -9,7 +62,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-!ChangeMe!}
       POSTGRES_USER: ${POSTGRES_USER:-app}
     healthcheck:
-      test: ["CMD", "pg_isready", "-d", "${POSTGRES_DB:-app}", "-U", "${POSTGRES_USER:-app}"]
+      test: [ "CMD", "pg_isready", "-d", "${POSTGRES_DB:-app}", "-U", "${POSTGRES_USER:-app}" ]
       timeout: 5s
       retries: 5
       start_period: 60s
@@ -17,9 +70,22 @@ services:
       - database_data:/var/lib/postgresql/data:rw
       # You may use a bind-mounted host directory instead, so that it is harder to accidentally remove the volume and lose all your data!
       # - ./docker/db/data:/var/lib/postgresql/data:rw
-###< doctrine/doctrine-bundle ###
+      ###< doctrine/doctrine-bundle ###
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - "8080:8080"
+    depends_on:
+      - database
+
+networks:
+  buyfromus_default:
+    external: true
 
 volumes:
-###> doctrine/doctrine-bundle ###
-  database_data:
-###< doctrine/doctrine-bundle ###
+  vendor:
+  app_var: ###> doctrine/doctrine-bundle ###
+
+  database_data: ###< doctrine/doctrine-bundle ###

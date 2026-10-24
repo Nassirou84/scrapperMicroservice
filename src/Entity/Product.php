@@ -129,9 +129,6 @@ class Product
         if ($this->title === null) {
             return false;
         }
-        if ($this->seller === null) {
-            return false;
-        }
 
         return true;
     }

@@ -6,6 +6,7 @@ use App\Service\BrightDataService;
 use App\Service\DataSyncService;
 use InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
@@ -15,6 +16,12 @@ use Symfony\Contracts\Cache\ItemInterface;
 
 final class ScrapperController extends AbstractController
 {
+    public function __construct(
+        #[Autowire(env: 'SCRAPPER_PASSKEY')]
+        private readonly string $scrapperPasskey,
+    ) {
+    }
+
     #[Route('/api/scrapper', name: 'app_home')]
     public function index(
         Request $request,
@@ -23,6 +30,9 @@ final class ScrapperController extends AbstractController
         DataSyncService $dataSync,
         NormalizerInterface $normalizer,
     ): JsonResponse {
+        if (!$this->isAuthorized($request)) {
+            return $this->json(['error' => 'Unauthorized'], 401);
+        }
 
         $url = (string) $request->query->get('url');
 
@@ -61,6 +71,10 @@ final class ScrapperController extends AbstractController
     #[Route('/api/batch', name: 'app_batch')]
     public function batch(Request $request, BrightDataService $brightData): JsonResponse
     {
+        if (!$this->isAuthorized($request)) {
+            return $this->json(['error' => 'Unauthorized'], 401);
+        }
+
         $urls = $request->query->all('urls');
 
         try {
@@ -74,5 +88,12 @@ final class ScrapperController extends AbstractController
         }
 
         return $this->json(['products' => $products]);
+    }
+
+    private function isAuthorized(Request $request): bool
+    {
+        $provided = (string) $request->headers->get('X-Scrapper-Passkey');
+
+        return '' !== $this->scrapperPasskey && hash_equals($this->scrapperPasskey, $provided);
     }
 }

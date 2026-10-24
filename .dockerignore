@@ -1,0 +1,18 @@
+.git
+.idea
+.vscode
+.claude
+
+# Rebuilt inside the image
+vendor
+var
+
+# Local secrets must never be baked into an image
+.env.local
+.env.*.local
+.env.local.php
+
+# Docker files themselves
+Dockerfile
+compose*.yaml
+.dockerignore
